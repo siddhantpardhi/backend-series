@@ -33,7 +33,7 @@ const userSchema = new Schema(
             type: String, // Cloudinery url 
         },
         watchHistory: [{
-            type: Schema.types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "Video"
         }],
         password: {
@@ -50,7 +50,7 @@ const userSchema = new Schema(
 
     userSchema.pre("save", async function (next) {
 
-        if(!this.modified("password")) return next();
+        if(!this.isModified("password")) return next();
         this.password = await bcrypt.hash(this.password, 10)
         next()
     })
