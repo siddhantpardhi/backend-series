@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { ApiResponse } from "../utils/ApiResponses.js";
 import fs from "fs";
 
@@ -157,8 +159,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1 // this removes the field from the document
             }
         },
         {
@@ -203,7 +205,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
     
-        const {accessToken, newRefreshToken } = await generateAccessAndRefreshToken(user_id)
+        const {accessToken, newRefreshToken } = await generateAccessAndRefreshToken(user._id)
     
         return res
         .status(200)
@@ -212,7 +214,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                {accessToken, newRefreshToken: refreshToken},
+                {accessToken, refreshToken: newRefreshToken},
                 "Access Token refreshed "
             )
         )
@@ -333,7 +335,7 @@ const getUserChannelProfile = asyncHandler( async(req, res) => {
         throw new ApiError(400, "Username is missing")
     }
 
-    const channel = await User.aggregrate([
+    const channel = await User.aggregate([
         {
             $match: {
                 username: username?.toLowerCase()
@@ -400,7 +402,7 @@ const getUserChannelProfile = asyncHandler( async(req, res) => {
 
 const getWatchHistory = asyncHandler( async(req, res) => {
 
-    const user = await User.aggregrate([
+    const user = await User.aggregate([
         {
             $match: {
                 _id: new mongoose.Types.ObjectId(req.user._id)
